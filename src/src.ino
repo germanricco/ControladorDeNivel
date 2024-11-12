@@ -241,8 +241,13 @@ void procesar_consigna(String parametro, String valor_consigna){
   }else if (parametro == "H"){
     margen_histeresis = valor_numerico;
     respuesta_consigna(parametro, valor_consigna);
-  }
-  else{
+  }else if(parametro == "A"){
+    comando= "AUTO";
+  }else if(parametro == "O"){
+    comando= "ON";
+  }else if(parametro == "C"){
+    comando= "OFF";
+  }else{
     Serial.println("Parametro desconocido en consigna.");
   }
 }
@@ -312,8 +317,7 @@ void bombita(){
 }
 
 void leer_comandos() {
-    if (Serial.available() > 0) {
-        String comando = Serial.readStringUntil('\n');
+
         comando.trim(); // Elimina espacios en blanco
 
         if (comando == "ON") {
@@ -379,12 +383,12 @@ void loop(){
         
       }
       porcentaje=map(distancia_actual,umbral_sup,umbral_inf,0,100);
-      Serial.print("El tanque está al ");
-      Serial.print(porcentaje);
-      Serial.print("%");
-      Serial.println();
+      //Serial.print("El tanque está al ");
+      //Serial.print(porcentaje);
+      //Serial.print("%");
+      //Serial.println();
       indicador_nivel();
-      bombita();      // AVERGASTON
+      bombita();      //
       leer_comandos();
       
       //Actualiza la distancia
