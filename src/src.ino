@@ -381,13 +381,13 @@ void loop(){
       Serial.print("%");
       Serial.println();
       indicador_nivel();
-      bombita();
+      bombita();      // AVERGASTON
       leer_comandos();
       
       //Actualiza la distancia
       distancia_anterior = distancia_actual;
     }
   }
-  
+
 }
 
