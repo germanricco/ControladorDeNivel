@@ -388,4 +388,6 @@ void loop(){
       distancia_anterior = distancia_actual;
     }
   }
+  
 }
+
