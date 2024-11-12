@@ -166,9 +166,6 @@ bool identificar_tipo_mensaje(String& parametro, String& valor_consigna){
   //obtiene el primer valor sin importar el tipo de mensaje
   parametro = trama_recibida[2];
 
-  ////Serial.print("Trama recibida .length(): ");
-  ////Serial.println(trama_recibida.length());
-
   //Una solicitud tiene máx 4 caracteres (por ej. ':1CI'). Si tiene 5 o más es consigna
   if (trama_recibida.length() >= 5){
     //actualizo valor_consigna tomando desde el 3 elemento hasta el ultimo
@@ -186,14 +183,21 @@ void procesar_solicitud(String parametro){
   //Eliminar caracteres invisibles
   parametro.trim();
 
+  //distancia
   if (parametro == "D"){
     respuesta_solicitud(parametro, distancia_actual);
-  }else if(parametro == "CI"){
+  }
+  //contadores
+  else if(parametro == "CI"){
     respuesta_solicitud(parametro, cont_inf);
   }else if(parametro == "CS"){
     respuesta_solicitud(parametro, cont_sup);
-  }else if(parametro == "M"){
-    respuesta_solicitud(parametro, POSICION_ACTUAL);
+  }
+  //umbrales
+  else if(parametro == "UI"){
+    respuesta_solicitud(parametro,  umbral_inf);
+  }else if(parametro == "US"){
+    respuesta_solicitud(parametro, umbral_sup);
   }else{
     Serial.println("Parametro desconocido en solicitud.");
   }

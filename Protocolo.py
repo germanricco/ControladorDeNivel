@@ -24,12 +24,9 @@ class Protocolo:
 
         Retorna True si la trama es válida, False en caso contrario.
         """
-        
-        inicio = ':'
-        fin = '\r'
 
         # Verificar que la trama comience con ':' y termine con '\r'
-        if not trama.startswith(inicio):
+        if not trama.startswith(':'):
             print("Error: Trama no comienza con ':'. ")
             return False
 
