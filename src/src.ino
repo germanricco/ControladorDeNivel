@@ -118,8 +118,8 @@ unsigned long periodo_muestreo = 200;   //Tiempo para tomar una nueva medicion d
 int inicio = 1;                       //VD. modificable. controla inicio de programa.
 unsigned int distancia_anterior = 0;
 unsigned int distancia_actual = 0;    //VA. pedible. contiene ultima distancia medida
-unsigned float umbral_inf = 15;         //VD. modificable
-unsigned float umbral_sup = 60;         //VD. modificable
+float umbral_inf = 15;       //VD. modificable
+float umbral_sup = 60;       //VD. modificable
 unsigned int cont_inf = 0;            //VD. pedible. almacena las veces que se supera el lim. inferior
 unsigned int cont_sup = 0;            //VD. pedible. almacena las veces que se supera el lim. superior
 
@@ -181,7 +181,7 @@ bool identificar_tipo_mensaje(String& parametro, String& valor_consigna){
 }
 
 void procesar_solicitud(String parametro){
-  //Eliminar caracteres invisibles
+  //Eliminar caracteres invisibles '\r'
   parametro.trim();
 
   //distancia
@@ -196,10 +196,15 @@ void procesar_solicitud(String parametro){
   }
   //umbrales
   else if(parametro == "UI"){
-    respuesta_solicitud(parametro,  umbral_inf);
+    respuesta_solicitud(parametro, umbral_inf);
   }else if(parametro == "US"){
     respuesta_solicitud(parametro, umbral_sup);
-  }else{
+  }
+    //margen de histeresis
+  else if(parametro == "M"){
+    respuesta_solicitud(parametro, margen_histeresis);
+  }
+  else{
     Serial.println("Parametro desconocido en solicitud.");
   }
 }
@@ -254,42 +259,41 @@ void respuesta_consigna(String parametro, String valor_consigna){
 }
 
 void indicador_nivel(){
-
-  if(distancia>umbral_sup){                          //distancia maxima , apaga los LEDs
+  if(distancia_actual>umbral_sup){                          //distancia maxima , apaga los LEDs
     for(int k=0;k<=5;k++){ 
       digitalWrite(leds[k],LOW);
       }
   } 
-  else if(distancia>(umbral_inf+incremento*5)){                   // primer nivel encender LED 1.
+  else if(distancia_actual>(umbral_inf+incremento*5)){                   // primer nivel encender LED 1.
     digitalWrite(leds[0], HIGH);
     for(int k=1;k<=5;k++){ 
       digitalWrite(leds[k],LOW);
     }
   } 
-  else if(distancia>(umbral_inf+incremento*4)){                     // 2do nivel encender LED 2 y asi con los demas LED etc...
+  else if(distancia_actual>(umbral_inf+incremento*4)){                     // 2do nivel encender LED 2 y asi con los demas LED etc...
     for(int k=0;k<=1;k++){ 
       digitalWrite(leds[k],HIGH);} 
     for(int k=2;k<=5;k++) 
     {digitalWrite(leds[k],LOW);}
    } 
-  else if(distancia>(umbral_inf+incremento*3)){                   //3er LED
+  else if(distancia_actual>(umbral_inf+incremento*3)){                   //3er LED
     for(int k=0;k<=2;k++){ 
       digitalWrite(leds[k],HIGH);} 
     for(int k=3;k<=5;k++){ 
       digitalWrite(leds[k],LOW);}
    } 
-  else if(distancia>(umbral_inf+incremento*2)){                     //4to LED
+  else if(distancia_actual>(umbral_inf+incremento*2)){                     //4to LED
     for(int k=0;k<=3;k++){
       digitalWrite(leds[k],HIGH);} 
     for(int k=4;k<=5;k++){ 
       digitalWrite(leds[k],LOW);}
    } 
-  else if(distancia>(umbral_inf+incremento)){                    //5to LED
+  else if(distancia_actual>(umbral_inf+incremento)){                    //5to LED
     for(int k=0;k<=4;k++){ 
       digitalWrite(leds[k],HIGH);} 
     digitalWrite(leds[5],LOW);
    } 
-  else if(distancia>umbral_inf){                      //6to LED
+  else if(distancia_actual>umbral_inf){                      //6to LED
     for(int k=0;k<=5;k++){ 
       digitalWrite(leds[k],HIGH);} 
    } 
@@ -323,7 +327,6 @@ void leer_comandos() {
         }
     }
 }
-
 
 // CONSTRUIR OBJETOS
 SensorUltrasonico sensorDistancia(ECO_PIN, TRIG_PIN);

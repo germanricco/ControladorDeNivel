@@ -1,21 +1,40 @@
 import tkinter as tk
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class MonitorGUI(tk.Tk):
     #Constructor para inicializar la clase
-    def __init__(self, arduino, enviar_comandos):
+    def __init__(self, arduino, enviar_comandos, lista_mediciones, lista_umbral_inferior, lista_umbral_superior):
         super().__init__() # Llama al constructor de la clase base (tk.Tk)
 
         # Parámetros para actualizar valores
         self.arduino = arduino
         self.enviar_comandos = enviar_comandos
+        self.lista_mediciones = lista_mediciones
+        self.lista_umbral_inferior = lista_umbral_inferior
+        self.lista_umbral_superior = lista_umbral_superior
 
         # Configuracion de la ventana principal
-        self.title("Test Aplication")
+        self.title("Monitor Arduino - Nivel de Tanque")
         self.geometry("800x600")
 
         # -- FRAME SUPERIOR --
         self.frame1 = tk.Frame(self, bg="gray")
         self.frame1.pack(side="top", fill="both", expand=True)
+
+        #Frame para la gráfica
+        self.frameGrafica = tk.Frame(self, bg="white")
+        self.frameGrafica.place(relx=0.3, rely=0, relwidth=0.7, relheight=0.8)
+
+        #Inicializar el grafico
+        self.fig, self.ax = plt.subplots(figsize=(5, 3))
+        self.ax.set_title("Distancia en función del tiempo")
+        self.ax.set_xlabel("Tiempo")
+        self.ax.set_ylabel("Distancia (cm)")
+        self.grafico = FigureCanvasTkAgg(self.fig, master=self.frameGrafica)
+        self.grafico.get_tk_widget().pack(fill='both', expand=True)
+
+        self.actualizar_grafico()
 
         #Frame Variables
         self.frameVariables = tk.Frame(self, bg="darkgray")
@@ -26,58 +45,63 @@ class MonitorGUI(tk.Tk):
                                      text="Variables",
                                      bg='lightgreen',
                                      font=('times', 24))
-        self.lblVariables.grid(padx=10, pady=10, row=0)
+        self.lblVariables.pack(pady=10)
 
-        #* Repetir esta estructura para el resto de variables
         #Label variable de Distancia
         self.lbl_distancia = tk.Label(self.frameVariables)
-        self.lbl_distancia.grid(padx=10, pady=10, row=1, columnspan=2)
-        #Incicializar la variable distancia
+        self.lbl_distancia.pack(pady=5)
+        #Incicializar la variable
         self.distancia = tk.StringVar()
         self.distancia.set("Cargando")
         self.lbl_distancia["textvariable"] = self.distancia
 
         #Label variable contador inf
         self.lbl_contador_inf = tk.Label(self.frameVariables)
-        self.lbl_contador_inf.grid(padx=10, pady=10, row=2, columnspan=2)
-        #Incicializar la variable contador_inf
+        self.lbl_contador_inf.pack(pady=5)
+        #Incicializar la variable
         self.contador_inf = tk.StringVar()
         self.contador_inf.set("Cargando")
         self.lbl_contador_inf["textvariable"] = self.contador_inf
 
         #Label variable contador sup
         self.lbl_contador_sup = tk.Label(self.frameVariables)
-        self.lbl_contador_sup.grid(padx=10, pady=10, row=3, columnspan=2)
-        #Incicializar la variable contador_sup
+        self.lbl_contador_sup.pack(pady=5)
+        #Incicializar la variable
         self.contador_sup = tk.StringVar()
         self.contador_sup.set("Cargando")
         self.lbl_contador_sup["textvariable"] = self.contador_sup
 
-        """
         #Título de Frame Parámetros
         self.lblParametros = tk.Label(self.frameVariables,
                                       text="Parámetros",
                                       bg='lightblue',
                                       font=('times', 24))
-        
-        self.lblParametros.grid(padx=10, pady=10, row=2)
+        self.lblParametros.pack(pady=10)
 
         #Label parametro umbral inferior
         self.lbl_umbral_inf = tk.Label(self.frameVariables)
-        self.lbl_umbral_inf.grid(padx=10, pady=10, row=3)
+        self.lbl_umbral_inf.pack(pady=5)
         #Incicializar la variable umbral_inferior
         self.umbral_inf = tk.StringVar()
         self.umbral_inf.set("Cargando")
         self.lbl_umbral_inf["textvariable"] = self.umbral_inf
 
         #Label parametro umbral superior
-        self.lbl_umbral_superior = tk.Label(self.frameVariables)
-        self.lbl_umbral_superior.grid(padx=10, pady=10, row=4)
+        self.lbl_umbral_sup = tk.Label(self.frameVariables)
+        self.lbl_umbral_sup.pack(pady=5)
         #Incicializar la variable umbral_superior
-        self.umbral_superior = tk.StringVar()
-        self.umbral_superior.set("Cargando")
-        self.lbl_umbral_superior["textvariable"] = self.umbral_superior
-        """
+        self.umbral_sup = tk.StringVar()
+        self.umbral_sup.set("Cargando")
+        self.lbl_umbral_sup["textvariable"] = self.umbral_sup
+
+        #Label parametro margen_histeresis
+        self.lbl_margen_hist = tk.Label(self.frameVariables)
+        self.lbl_margen_hist.pack(pady=5)
+        #Inicializar la variable margen_histeresis
+        self.margen_hist = tk.StringVar()
+        self.margen_hist.set("Cargando")
+        self.lbl_margen_hist["textvariable"] = self.margen_hist
+
 
         # -- FRAME INFERIOR --
         self.frame2 = tk.Frame(self, bg="blue")
@@ -113,27 +137,32 @@ class MonitorGUI(tk.Tk):
         self.respuesta.set("RTA.")
         self.lbl_respuesta["textvariable"] = self.respuesta
 
+    def actualizar_grafico(self):
+        """
+        Actualiza el gráfico con los valores de lista_mediciones.
+        """
+        self.ax.clear()  # Limpia el gráfico anterior
 
-    """
-    def enviar_comando(self):
-        comando = self.EntradaComando.get().strip()
-        if not comando:
-            self.lbl_respuesta.config(text="Sin Respuesta")
-            return
+        #Grafica de distancia
+        self.ax.plot(self.lista_mediciones, marker="o", linestyle="-", color="b")  # Redibuja el gráfico
+        self.ax.set_title("Distancia en función del tiempo")
+        self.ax.set_xlabel("Tiempo")
+        self.ax.set_ylabel("Distancia (cm)")
 
-        self.arduino.enviar_datos(comando) #* Se puede modificar para enviar el comando más resumido
-        # Enviar el comando al Arduino
-        #trama = f":1{comando}\r"
-        #self.arduino.enviar_datos(trama)
+        #Grafica de umbral inferior
+        self.ax.plot(self.lista_umbral_inferior, linestyle="--", color="r", label="Umbral Inferior")
 
-        # Bloquea momentáneamente para recibir la respuesta
-        self.after(int(self.tiempo_espera * 1000), self.recibir_respuesta)
+        #Grafica de umbral superior
+        self.ax.plot(self.lista_umbral_superior, linestyle="--", color="g", label="Umbral Superior")
 
-    #* Terminar!
-    def recibir_respuesta(self):
-        respuesta = self.arduino.recibir_datos()
-        if respuesta:
-            self.lbl_respuesta.config(text=f"Respuesta: {respuesta}")
-        else:
-            self.lbl_respuesta.config(text="No se recibió respuesta del Arduino.")
-    """
+        # Configuracion de leyenda
+        self.ax.legend(loc="upper right")
+        self.ax.set_title("Distancia en función del tiempo")
+        self.ax.set_xlabel("Tiempo")
+        self.ax.set_ylabel("Distancia (cm)")
+
+        #Redibuja
+        self.grafico.draw()
+
+        # Actualiza el gráfico cada segundo
+        self.after(1000, self.actualizar_grafico)

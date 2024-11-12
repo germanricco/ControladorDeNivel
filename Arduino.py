@@ -113,7 +113,6 @@ class Arduino:
                 if trama.endswith('\r'):
                     trama = trama.strip()
                     return trama
-                
                 else:
                     print("Error. el mensaje no termina con '\r'. ")
                     return None
