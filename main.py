@@ -38,8 +38,6 @@ def enviar_comando (arduino, app, comando, tiempo_espera=0.2):
     else:
         app.respuesta.set("No se pudo ejecutar el comando")
 
-
-
 def solicitar_valor (arduino, num_direccion, parametro, tiempo_espera):
     """
     Solicita un valor específico al Arduino
@@ -57,6 +55,8 @@ def solicitar_valor (arduino, num_direccion, parametro, tiempo_espera):
         arduino.enviar_datos(trama_solicitud)
         time.sleep(tiempo_espera)
         respuesta = arduino.recibir_datos()
+
+        #!print(f"Respuesta recibida: {respuesta}")
                 
         # Verificar si la trama de respuesta tiene algo y es valida
     if respuesta and Protocolo.verificar_trama(respuesta, num_direccion, parametro):
@@ -91,6 +91,14 @@ def actualizar_valores (arduino, app, periodo_solicitud, tiempo_espera):
                     app.distancia.set(f"Distancia: {distancia} cm")
                     #Agrego medicion a lista
                     lista_mediciones.append(int(distancia))
+                except Exception as e:
+                    app.distancia.set("Error al actualizar")
+
+            # Solicitar y actualizar porcentaje de llenado
+            porcentaje = solicitar_valor(arduino, 1, 'P', tiempo_espera)
+            if porcentaje is not None:
+                try:
+                    app.porcentaje.set(f"Porcentaje de Llenado: {porcentaje}%")
                 except Exception as e:
                     app.distancia.set("Error al actualizar")
 
@@ -146,16 +154,25 @@ def actualizar_valores (arduino, app, periodo_solicitud, tiempo_espera):
 def cerrar_aplicacion(arduino, ventana):
     global ejecutando
     ejecutando = False
-    arduino.desconectar()
-    ventana.destroy()
+
+    # Frena actualización del gráfico (dejar de solicitar valores)
+    if ventana.id_actualizar_grafico:
+        ventana.after_cancel(ventana.id_actualizar_grafico)  # Cancela la actualización del gráfico
+
+    print("Cerrando conexion con Arduino")
+    if arduino.is_connected():
+        arduino.desconectar()
+        
     print("Aplicación cerrada.")
+    ventana.destroy()
+
 
 def main():
     # Configuración inicial
     global ejecutando
     ejecutando = True
 
-    arduino = Arduino(port="COM3", baudrate=9600, sketch_path=path_arduino)
+    arduino = Arduino(port="COM3", baudrate=28800, sketch_path=path_arduino)
     arduino.subir_sketch()
 
     arduino.conectar()
@@ -167,8 +184,8 @@ def main():
             print("No se pudo establecer la conexión con el Arduino. Saliendo del programa.")
             return
         
-    periodo_solicitud = 2  # Intervalo en segundos entre solicitudes
-    tiempo_espera = 0.5  # Tiempo de espera en segundos para la respuesta
+    periodo_solicitud = 1  # Intervalo en segundos entre solicitudes
+    tiempo_espera = 0.2  # Tiempo de espera en segundos para la respuesta
 
     app = MonitorGUI(arduino, enviar_comando, lista_mediciones, lista_umbral_inferior, lista_umbral_superior)
 

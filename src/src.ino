@@ -4,6 +4,7 @@
 
 // CLASES
 class SensorUltrasonico {
+
     private:
         unsigned int Eco;       
         unsigned int Trig;  
@@ -96,38 +97,40 @@ void Led::titilar(int delayTime){
 
 // CONSTANTES Y VARIABLES GLOBALES
 const uint8_t MI_DIRECCION = 1;
-const unsigned int TRIG_PIN = 10;       //Pin Trigger de sensor ultrasonico
-const unsigned int ECO_PIN = 11;        //Pin Echo de sensor ultrasonico
-const unsigned int LED1_PIN = 12;
 const unsigned long TIMEOUT_MS = 1000;  //Tiempo máximo para recibir la trama
 
+//Bomba - Rele
+int BOMBA_PIN=9;
 
+//Sensor Ultrasonico
+const unsigned int TRIG_PIN = 10;
+const unsigned int ECO_PIN = 11;
 
-// PINES PARA LOS LEDS
+// Leds
 int leds[]={2,3,4,5,6,7};
-//PIN PARA LA BOMBA
-int bomba=9;
-//AUXILIARES
-bool modo_manual = false; // Inicialmente en automático
-int porcentaje;
 
-
-
-unsigned long periodo_muestreo = 200;   //Tiempo para tomar una nueva medicion de distancia
-
-int inicio = 1;                       //VD. modificable. controla inicio de programa.
-unsigned int distancia_anterior = 0;
-unsigned int distancia_actual = 0;    //VA. pedible. contiene ultima distancia medida
-float umbral_inf = 15;       //VD. modificable
-float umbral_sup = 60;       //VD. modificable
-unsigned int cont_inf = 0;            //VD. pedible. almacena las veces que se supera el lim. inferior
-unsigned int cont_sup = 0;            //VD. pedible. almacena las veces que se supera el lim. superior
-
-unsigned int margen_histeresis = 1;   //VD. modificable. margen de histeresis para evitar incrementos multiples debido a pequeñas oscilaciones.
-
+// Comunicacion Serial
 String trama_recibida = "";   //Trama recibida en string normal
 String parametro;             //Parametro recibido
 String valor_consigna;        //Valor que se debera asignar al parametro
+
+// Distancias y Umbrales
+unsigned int distancia_anterior = 0;
+unsigned int distancia_actual = 0;    //VA. pedible. contiene ultima distancia medida
+float umbral_inf = 10;                //VD. modificable
+float umbral_sup = 26;                //VD. modificable
+unsigned int cont_inf = 0;            //VD. pedible. almacena las veces que se supera el lim. inferior
+unsigned int cont_sup = 0;            //VD. pedible. almacena las veces que se supera el lim. superior
+unsigned int margen_histeresis = 1;   //VD. modificable. margen de histeresis para evitar incrementos multiples debido a pequeñas oscilaciones.
+
+unsigned long periodo_muestreo = 200; //Tiempo para tomar una nueva medicion de distancia
+
+//Otros
+
+int porcentaje;
+
+bool modo_manual = false; // Inicialmente en automático
+int inicio = 1;                       //VD. modificable. controla inicio de programa.
 
 float incremento=(umbral_sup-umbral_inf)/6;
 
@@ -187,6 +190,8 @@ void procesar_solicitud(String parametro){
   //distancia
   if (parametro == "D"){
     respuesta_solicitud(parametro, distancia_actual);
+  }else if (parametro == "P"){
+    respuesta_solicitud(parametro, porcentaje);
   }
   //contadores
   else if(parametro == "CI"){
@@ -211,7 +216,8 @@ void procesar_solicitud(String parametro){
 
 void respuesta_solicitud(String parametro, int valor) {
     //Formatear el mensaje de respuesta como una cadena concatenando:
-    String respuesta = ":";
+    String respuesta = "";
+    respuesta += ":";
     respuesta += String(MI_DIRECCION);
     respuesta += parametro;
     respuesta += String(valor);
@@ -242,19 +248,20 @@ void procesar_consigna(String parametro, String valor_consigna){
     margen_histeresis = valor_numerico;
     respuesta_consigna(parametro, valor_consigna);
   }else if(parametro == "A"){
-    comando= "AUTO";
+    leer_comandos("AUTO");
   }else if(parametro == "O"){
-    comando= "ON";
+    leer_comandos("ON");
   }else if(parametro == "C"){
-    comando= "OFF";
-  }else{
+    leer_comandos("OFF");
+  }
+  else{
     Serial.println("Parametro desconocido en consigna.");
   }
 }
 
 void respuesta_consigna(String parametro, String valor_consigna){
   String respuesta = "";
-  respuesta += ":";
+  respuesta = ":";
   respuesta += String(MI_DIRECCION);
   respuesta += parametro;
   respuesta += String(valor_consigna);
@@ -308,44 +315,42 @@ void indicador_nivel(){
 void bombita(){
   if(!modo_manual){
     if(distancia_actual>umbral_inf){          //CORTA LA SEÑAL DEL RELE
-      digitalWrite(bomba, HIGH);
+      digitalWrite(BOMBA_PIN, HIGH);
     }
     else{
-      digitalWrite(bomba, LOW);
+      digitalWrite(BOMBA_PIN, LOW);
       }
 }
 }
 
-void leer_comandos() {
+void leer_comandos(String comando) {
+  comando.trim(); // Elimina espacios en blanco
 
-        comando.trim(); // Elimina espacios en blanco
-
-        if (comando == "ON") {
-            digitalWrite(bomba, HIGH);
-            modo_manual = true; // Cambia a modo manual
-        } else if (comando == "OFF") {
-            digitalWrite(bomba, LOW);
-            modo_manual = true; // Cambia a modo manual
-        } else if (comando == "AUTO") {
-            modo_manual = false; // Cambia a modo automático
-        }
+    if (comando == "ON") {
+        digitalWrite(BOMBA_PIN, HIGH);
+        modo_manual = true; // Cambia a modo manual
+    } else if (comando == "OFF") {
+        digitalWrite(BOMBA_PIN, LOW);
+        modo_manual = true; // Cambia a modo manual
+    } else if (comando == "AUTO") {
+        modo_manual = false; // Cambia a modo automático
     }
 }
 
+
 // CONSTRUIR OBJETOS
 SensorUltrasonico sensorDistancia(ECO_PIN, TRIG_PIN);
-Led led_azul(LED1_PIN);
 
 // PROGRAMA PRINCIPAL
 void setup(){
-    Serial.begin(9600);
+    Serial.begin(28800);
 
     //Salidas para los leds
     for(int pin=2;pin<=7;pin++)
       pinMode(pin,OUTPUT);
 
-    //SALIDA PARA EL RELÉ QUE ACTIVA LA BOMBA
-    pinMode(bomba, OUTPUT);
+    //SALIDA PARA EL RELÉ QUE ACTIVA LA BOMBA_PIN
+    pinMode(BOMBA_PIN, OUTPUT);
 }   
 
 void loop(){
@@ -370,31 +375,24 @@ void loop(){
 
     //Si el tiempo es mayor al periodo de muestreo
     if (sensorDistancia.actualizar(periodo_muestreo)){
+      //Tomar medicion
       distancia_actual = sensorDistancia.medirDistancia();
-      //Verificar si cruza umbral inferior
-      if (distancia_actual < (umbral_inf - margen_histeresis) && distancia_anterior >= umbral_inf){
-        led_azul.titilar(100);
-        cont_inf += 1;
-        
-      //Verificar si cruza umbral superior
-      }else if(distancia_actual > (umbral_sup + margen_histeresis) && distancia_anterior < umbral_sup){
-        led_azul.titilar(100);
-        cont_sup += 1;
-        
-      }
-      porcentaje=map(distancia_actual,umbral_sup,umbral_inf,0,100);
-      //Serial.print("El tanque está al ");
-      //Serial.print(porcentaje);
-      //Serial.print("%");
-      //Serial.println();
-      indicador_nivel();
-      bombita();      //
-      leer_comandos();
-      
-      //Actualiza la distancia
-      distancia_anterior = distancia_actual;
-    }
-  }
 
+      //Verificar si cruza umbral inferior
+      if (distancia_actual < (umbral_inf-margen_histeresis) && distancia_anterior >= (umbral_inf-margen_histeresis)){
+        cont_inf += 1;
+      }
+      //Verificar si cruza umbral superior
+      else if(distancia_actual > (umbral_sup + margen_histeresis) && distancia_anterior <= (umbral_sup+margen_histeresis)){
+        cont_sup += 1;
+      }
+    }
+
+    distancia_anterior = distancia_actual;
+    porcentaje=map(distancia_actual,umbral_sup,umbral_inf,0,100);
+
+    indicador_nivel();
+    bombita();
+  }
 }
 

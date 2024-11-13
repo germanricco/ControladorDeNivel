@@ -14,6 +14,8 @@ class MonitorGUI(tk.Tk):
         self.lista_umbral_inferior = lista_umbral_inferior
         self.lista_umbral_superior = lista_umbral_superior
 
+        self.id_actualizar_grafico = None  # ID para la tarea programada
+
         # Configuracion de la ventana principal
         self.title("Monitor Arduino - Nivel de Tanque")
         self.geometry("800x600")
@@ -54,6 +56,14 @@ class MonitorGUI(tk.Tk):
         self.distancia = tk.StringVar()
         self.distancia.set("Cargando")
         self.lbl_distancia["textvariable"] = self.distancia
+
+        #Label variable porcentaje
+        self.lbl_porcentaje = tk.Label(self.frameVariables)
+        self.lbl_porcentaje.pack(pady=5)
+        #Inicializar la variable
+        self.porcentaje = tk.StringVar()
+        self.porcentaje.set("Cargando")
+        self.lbl_porcentaje["textvariable"] = self.porcentaje
 
         #Label variable contador inf
         self.lbl_contador_inf = tk.Label(self.frameVariables)
@@ -164,5 +174,5 @@ class MonitorGUI(tk.Tk):
         #Redibuja
         self.grafico.draw()
 
-        # Actualiza el gráfico cada segundo
-        self.after(1000, self.actualizar_grafico)
+        # Guarda el ID de la proxima llamada, actualiza el gráfico cada 1s
+        self.id_actualizar_grafico = self.after(1000, self.actualizar_grafico)
