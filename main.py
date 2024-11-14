@@ -117,6 +117,22 @@ def actualizar_valores (arduino, app, periodo_solicitud, tiempo_espera):
                     app.contador_sup.set(f"Contador Superior: {contador_superior}")
                 except Exception as e:
                     app.contador_sup.set("Error al actualizar")
+
+            # Solicitar y actualizar el estado manual o automatico
+            modo_manual = solicitar_valor(arduino, 1, "M", tiempo_espera)
+            if modo_manual is not None:
+                try:
+                    app.modo_manual.set(f"Modo Manual: {modo_manual}")
+                except Exception as e:
+                    app.modo_manual.set("Error al actualizar")
+
+            bomba_prendida = solicitar_valor(arduino, 1, "B", tiempo_espera)
+            if bomba_prendida is not None:
+                try:
+                    app.bomba_prendida.set(f"Estado Bomba: {bomba_prendida}")
+                except Exception as e:
+                    app.bomba_prendida.set("Error al actualizar")
+
             # Solicitar y actualizar umbral_inferior
             umbral_inferior = solicitar_valor(arduino, 1, 'UI', tiempo_espera)
             if umbral_inferior is not None:
@@ -138,12 +154,14 @@ def actualizar_valores (arduino, app, periodo_solicitud, tiempo_espera):
                     app.umbral_sup.set("Error al actualizar")  
 
             # Solicitar margen de histeresis
-            margen_histeresis = solicitar_valor(arduino, 1, "M", tiempo_espera)
+            margen_histeresis = solicitar_valor(arduino, 1, "H", tiempo_espera)
             if margen_histeresis is not None:
                 try:
                     app.margen_hist.set(f"Histeresis: {margen_histeresis} cm")
                 except Exception as e:
                     app.margen_hist.set("Error al actualizar")
+
+            
 
             # Actualizo tiempos
             ultimo_tiempo_solicitud = tiempo_actual
@@ -172,8 +190,8 @@ def main():
     global ejecutando
     ejecutando = True
 
-    arduino = Arduino(port="COM3", baudrate=28800, sketch_path=path_arduino)
-    arduino.subir_sketch()
+    arduino = Arduino(port="COM7", baudrate=28800, sketch_path=path_arduino)
+    #*arduino.subir_sketch()
 
     arduino.conectar()
 

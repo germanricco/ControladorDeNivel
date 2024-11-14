@@ -99,10 +99,11 @@ void Led::titilar(int delayTime){
 const uint8_t MI_DIRECCION = 1;
 const unsigned long TIMEOUT_MS = 1000;  //Tiempo máximo para recibir la trama
 
-//Bomba - Rele
+// Bomba - Rele
 int BOMBA_PIN=9;
+bool bomba_prendida = false;
 
-//Sensor Ultrasonico
+// Sensor Ultrasonico
 const unsigned int TRIG_PIN = 10;
 const unsigned int ECO_PIN = 11;
 
@@ -117,11 +118,12 @@ String valor_consigna;        //Valor que se debera asignar al parametro
 // Distancias y Umbrales
 unsigned int distancia_anterior = 0;
 unsigned int distancia_actual = 0;    //VA. pedible. contiene ultima distancia medida
-float umbral_inf = 10;                //VD. modificable
+float umbral_inf = 20;                //VD. modificable
 float umbral_sup = 26;                //VD. modificable
 unsigned int cont_inf = 0;            //VD. pedible. almacena las veces que se supera el lim. inferior
 unsigned int cont_sup = 0;            //VD. pedible. almacena las veces que se supera el lim. superior
 unsigned int margen_histeresis = 1;   //VD. modificable. margen de histeresis para evitar incrementos multiples debido a pequeñas oscilaciones.
+bool adentro = false;
 
 unsigned long periodo_muestreo = 200; //Tiempo para tomar una nueva medicion de distancia
 
@@ -205,9 +207,17 @@ void procesar_solicitud(String parametro){
   }else if(parametro == "US"){
     respuesta_solicitud(parametro, umbral_sup);
   }
-    //margen de histeresis
-  else if(parametro == "M"){
+  //margen de histeresis
+  else if(parametro == "H"){
     respuesta_solicitud(parametro, margen_histeresis);
+  }
+  // Modo manual o automatico
+  else if(parametro == "M"){
+    respuesta_solicitud(parametro, modo_manual);
+  }
+  // Bomba prendida o apagada
+  else if(parametro == "B"){
+    respuesta_solicitud(parametro, bomba_prendida);
   }
   else{
     Serial.println("Parametro desconocido en solicitud.");
@@ -248,11 +258,18 @@ void procesar_consigna(String parametro, String valor_consigna){
     margen_histeresis = valor_numerico;
     respuesta_consigna(parametro, valor_consigna);
   }else if(parametro == "A"){
-    leer_comandos("AUTO");
+    modo_manual = false; // Cambia a modo automático
+    respuesta_consigna(parametro, valor_consigna);
   }else if(parametro == "O"){
-    leer_comandos("ON");
+    digitalWrite(BOMBA_PIN, HIGH);
+    bomba_prendida = true;
+    modo_manual = true; // Cambia a modo manual
+    respuesta_consigna(parametro, valor_consigna);
   }else if(parametro == "C"){
-    leer_comandos("OFF");
+    digitalWrite(BOMBA_PIN, LOW);
+    bomba_prendida = false;
+    modo_manual = true; // Cambia a modo manual
+    respuesta_consigna(parametro, valor_consigna);
   }
   else{
     Serial.println("Parametro desconocido en consigna.");
@@ -305,7 +322,7 @@ void indicador_nivel(){
       digitalWrite(leds[k],HIGH);} 
     digitalWrite(leds[5],LOW);
    } 
-  else if(distancia_actual>umbral_inf){                      //6to LED
+  else if(distancia_actual>(umbral_inf-margen_histeresis)){                      //6to LED
     for(int k=0;k<=5;k++){ 
       digitalWrite(leds[k],HIGH);} 
    } 
@@ -316,27 +333,16 @@ void bombita(){
   if(!modo_manual){
     if(distancia_actual>umbral_inf){          //CORTA LA SEÑAL DEL RELE
       digitalWrite(BOMBA_PIN, HIGH);
+      bomba_prendida = true;
     }
-    else{
+    else if(distancia_actual<umbral_inf-margen_histeresis){
       digitalWrite(BOMBA_PIN, LOW);
-      }
-}
-}
-
-void leer_comandos(String comando) {
-  comando.trim(); // Elimina espacios en blanco
-
-    if (comando == "ON") {
-        digitalWrite(BOMBA_PIN, HIGH);
-        modo_manual = true; // Cambia a modo manual
-    } else if (comando == "OFF") {
-        digitalWrite(BOMBA_PIN, LOW);
-        modo_manual = true; // Cambia a modo manual
-    } else if (comando == "AUTO") {
-        modo_manual = false; // Cambia a modo automático
+      bomba_prendida = false;
     }
+  }else{
+    return;
+  }
 }
-
 
 // CONSTRUIR OBJETOS
 SensorUltrasonico sensorDistancia(ECO_PIN, TRIG_PIN);
@@ -377,19 +383,25 @@ void loop(){
     if (sensorDistancia.actualizar(periodo_muestreo)){
       //Tomar medicion
       distancia_actual = sensorDistancia.medirDistancia();
-
-      //Verificar si cruza umbral inferior
-      if (distancia_actual < (umbral_inf-margen_histeresis) && distancia_anterior >= (umbral_inf-margen_histeresis)){
-        cont_inf += 1;
+      if (distancia_actual > (umbral_inf) && distancia_actual < (umbral_sup)){
+        adentro=true;
       }
-      //Verificar si cruza umbral superior
-      else if(distancia_actual > (umbral_sup + margen_histeresis) && distancia_anterior <= (umbral_sup+margen_histeresis)){
-        cont_sup += 1;
+      if (adentro == true){
+        //Verificar si cruza umbral inferior
+        if (distancia_actual < (umbral_inf-margen_histeresis) && distancia_anterior >= (umbral_inf-margen_histeresis)){
+          adentro = false;
+          cont_inf += 1;
+        }
+        //Verificar si cruza umbral superior
+        else if(distancia_actual > (umbral_sup+margen_histeresis) && distancia_anterior <= (umbral_sup+margen_histeresis)){
+          cont_sup += 1;
+          adentro = false;
+        }
       }
     }
 
     distancia_anterior = distancia_actual;
-    porcentaje=map(distancia_actual,umbral_sup,umbral_inf,0,100);
+    porcentaje=map(distancia_actual,umbral_sup+margen_histeresis,umbral_inf-margen_histeresis,0,100);
 
     indicador_nivel();
     bombita();

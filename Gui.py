@@ -88,6 +88,22 @@ class MonitorGUI(tk.Tk):
                                       font=('times', 24))
         self.lblParametros.pack(pady=10)
 
+        #Label parametro modo_manual
+        self.lbl_modo_manual = tk.Label(self.frameVariables)
+        self.lbl_modo_manual.pack(pady=5)
+        #Incicializar la variable modo_manual
+        self.modo_manual = tk.StringVar()
+        self.modo_manual.set("Cargando")
+        self.lbl_modo_manual["textvariable"] = self.modo_manual
+
+        #Label parametro umbral inferior
+        self.lbl_bomba_prendida= tk.Label(self.frameVariables)
+        self.lbl_bomba_prendida.pack(pady=5)
+        #Incicializar la variable umbral_inferior
+        self.bomba_prendida = tk.StringVar()
+        self.bomba_prendida.set("Cargando")
+        self.lbl_bomba_prendida["textvariable"] = self.bomba_prendida
+
         #Label parametro umbral inferior
         self.lbl_umbral_inf = tk.Label(self.frameVariables)
         self.lbl_umbral_inf.pack(pady=5)
